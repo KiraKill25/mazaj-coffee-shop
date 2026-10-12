@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Settings, Trash2, Banknote, CreditCard } from "lucide-react";
-import { CATEGORIES, T, fmtOrder, money, resolveImage, setPos, usePos, type Category, type Item, type Lang } from "@/lib/pos";
+import { Minus, Plus, Package, BarChart3, Trash2, Banknote, CreditCard } from "lucide-react";
+import { T, TX, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 
 export const Route = createFileRoute("/")({
@@ -25,8 +25,8 @@ type Done = { num: number; type: OrderType; lines: Line[]; total: number; method
 function Register() {
   useDir();
   const pos = usePos();
-  const t = T[pos.lang];
-  const [cat, setCat] = useState<Category | "all">("all");
+  const t = TX[pos.lang];
+  const [cat, setCat] = useState<string>("all");
   const [cart, setCart] = useState<Line[]>([]);
   const [type, setType] = useState<OrderType>("dineIn");
   const [pay, setPay] = useState<null | "cash" | "card">(null);
@@ -35,7 +35,7 @@ function Register() {
 
   const total = useMemo(() => cart.reduce((s, l) => s + l.item.price * l.qty, 0), [cart]);
   const items = pos.items.filter((i) => cat === "all" || i.category === cat);
-  const usedCats = CATEGORIES.filter((c) => pos.items.some((i) => i.category === c));
+  const usedCats = pos.categories.filter((c) => pos.items.some((i) => i.category === c.id));
 
   const add = (item: Item) => {
     if (item.outOfStock) return;
@@ -53,7 +53,7 @@ function Register() {
 
   const confirm = () => {
     const done: Done = { num: pos.nextOrder, type, lines: cart, total, method: pay!, received: pay === "cash" ? rec : undefined, date: new Date().toLocaleString("fr-FR"), lang: pos.lang };
-    setPos((s) => ({ ...s, nextOrder: s.nextOrder + 1 }));
+    setPos((s) => ({ ...s, nextOrder: s.nextOrder + 1, sales: [...(s.sales ?? []), { num: s.nextOrder, at: Date.now(), type, method: pay!, total, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) }] }));
     setPrinted(done);
     setCart([]);
     setPay(null);
@@ -76,15 +76,16 @@ function Register() {
         </div>
         <div className="flex items-center gap-2">
           <LangBar />
-          <Link to="/manage" aria-label={t.manage} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Settings /></Link>
+          <Link to="/reports" aria-label={t.reports} title={t.reports} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><BarChart3 /></Link>
+          <Link to="/inventory" aria-label={t.inventory} title={t.inventory} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Package /></Link>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <main className="flex min-h-0 flex-1 flex-col">
           <div className="flex gap-2 overflow-x-auto px-4 py-3">
-            {(["all", ...usedCats] as const).map((c) => (
-              <button key={c} onClick={() => setCat(c)} className={`h-12 shrink-0 rounded-full px-5 font-bold ${cat === c ? "bg-foreground text-background" : "bg-card text-foreground border border-border"}`}>{t[c]}</button>
+            {[{ id: "all", label: t.all }, ...usedCats.map((c) => ({ id: c.id, label: c.name[pos.lang] }))].map((c) => (
+              <button key={c.id} onClick={() => setCat(c.id)} className={`h-12 shrink-0 rounded-full px-5 font-bold ${cat === c.id ? "bg-foreground text-background" : "bg-card text-foreground border border-border"}`}>{c.label}</button>
             ))}
           </div>
           <div className="grid flex-1 auto-rows-max grid-cols-2 gap-3 overflow-y-auto px-4 pb-4 lg:grid-cols-3 xl:grid-cols-4">

@@ -5,20 +5,23 @@ import wrap from "@/assets/wrap.jpg";
 import soda from "@/assets/soda.jpg";
 
 export type Lang = "en" | "fr" | "ar";
-export type Category = "burgers" | "wraps" | "sides" | "drinks" | "desserts";
-export const CATEGORIES: Category[] = ["burgers", "wraps", "sides", "drinks", "desserts"];
+export type Category = { id: string; name: Record<Lang, string> };
+export type SaleLine = { id: string; name: Record<Lang, string>; price: number; qty: number };
+export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; method: "cash" | "card"; total: number; lines: SaleLine[] };
 
 export type Item = {
   id: string;
   name: Record<Lang, string>;
   price: number;
-  category: Category;
+  category: string;
   image: string; // "seed:<key>" or data URL
   outOfStock: boolean;
 };
 
 export type PosState = {
   items: Item[];
+  categories: Category[];
+  sales: Sale[];
   nextOrder: number;
   pin: string;
   currency: string;
@@ -38,6 +41,14 @@ const seed = (): PosState => ({
     { id: "5", name: { en: "Large Fries", fr: "Grandes Frites", ar: "بطاطس كبيرة" }, price: 3.5, category: "sides", image: "seed:fries", outOfStock: false },
     { id: "6", name: { en: "Cola", fr: "Cola", ar: "كولا" }, price: 2, category: "drinks", image: "seed:soda", outOfStock: false },
   ],
+  categories: [
+    { id: "burgers", name: { en: "Burgers", fr: "Burgers", ar: "برغر" } },
+    { id: "wraps", name: { en: "Wraps", fr: "Wraps", ar: "راب" } },
+    { id: "sides", name: { en: "Sides", fr: "Accompagnements", ar: "مقبلات" } },
+    { id: "drinks", name: { en: "Drinks", fr: "Boissons", ar: "مشروبات" } },
+    { id: "desserts", name: { en: "Desserts", fr: "Desserts", ar: "حلويات" } },
+  ],
+  sales: [],
   nextOrder: 1,
   pin: "1234",
   currency: "€",
@@ -89,4 +100,31 @@ export const T = {
   fr: { register: "Caisse", manage: "Gestion du menu", dineIn: "Sur place", takeaway: "À emporter", order: "Commande", empty: "Touchez un plat pour l'ajouter", total: "Total", cash: "Espèces", card: "Carte", clear: "Vider", outOfStock: "Épuisé", received: "Montant reçu", change: "Monnaie à rendre", exact: "Exact", confirm: "Valider & imprimer", cancel: "Annuler", cardMsg: "Encaissez sur le terminal de carte, puis validez.", enterPin: "Code PIN gérant", wrongPin: "Code incorrect", unlock: "Déverrouiller", addItem: "Ajouter un plat", name: "Nom", price: "Prix", category: "Catégorie", photo: "Photo", save: "Enregistrer", delete: "Supprimer", inStock: "Disponible", settings: "Réglages", currency: "Devise", newPin: "Nouveau PIN", resetCounter: "Réinitialiser les numéros", back: "Retour à la caisse", thanks: "Merci !", paid: "Payé", lock: "Verrouiller", nextOrder: "Prochaine commande", burgers: "Burgers", wraps: "Wraps", sides: "Accompagnements", drinks: "Boissons", desserts: "Desserts", all: "Tout", short: "Insuffisant" },
   ar: { register: "الصندوق", manage: "إدارة القائمة", dineIn: "في المطعم", takeaway: "سفري", order: "طلب", empty: "اضغط على طبق لإضافته", total: "المجموع", cash: "نقداً", card: "بطاقة", clear: "مسح", outOfStock: "نفد", received: "المبلغ المستلم", change: "الباقي", exact: "المبلغ بالضبط", confirm: "تأكيد وطباعة", cancel: "إلغاء", cardMsg: "أتمم الدفع على جهاز البطاقة ثم أكّد.", enterPin: "أدخل رمز المدير", wrongPin: "رمز خاطئ", unlock: "فتح", addItem: "إضافة طبق", name: "الاسم", price: "السعر", category: "الفئة", photo: "صورة", save: "حفظ", delete: "حذف", inStock: "متوفر", settings: "الإعدادات", currency: "العملة", newPin: "رمز جديد", resetCounter: "إعادة ترقيم الطلبات", back: "العودة للصندوق", thanks: "شكراً لكم!", paid: "مدفوع", lock: "قفل", nextOrder: "الطلب التالي", burgers: "برغر", wraps: "راب", sides: "مقبلات", drinks: "مشروبات", desserts: "حلويات", all: "الكل", short: "غير كافٍ" },
 } as const;
+const EXTRA = {
+  en: { inventory: "Inventory", reports: "Sales reports", categories: "Categories", addCategory: "Add category", today: "Today", week: "This week", month: "This month", orders: "Orders", revenue: "Revenue", avgTicket: "Average ticket", history: "Sales history", topItems: "Best sellers", noSales: "No sales in this period", uncategorized: "Uncategorized", edit: "Edit", qty: "Qty" },
+  fr: { inventory: "Inventaire", reports: "Rapports de ventes", categories: "Catégories", addCategory: "Ajouter une catégorie", today: "Aujourd'hui", week: "Cette semaine", month: "Ce mois", orders: "Commandes", revenue: "Chiffre d'affaires", avgTicket: "Panier moyen", history: "Historique des ventes", topItems: "Meilleures ventes", noSales: "Aucune vente sur cette période", uncategorized: "Sans catégorie", edit: "Modifier", qty: "Qté" },
+  ar: { inventory: "المخزون", reports: "تقارير المبيعات", categories: "الفئات", addCategory: "إضافة فئة", today: "اليوم", week: "هذا الأسبوع", month: "هذا الشهر", orders: "الطلبات", revenue: "الإيرادات", avgTicket: "متوسط الطلب", history: "سجل المبيعات", topItems: "الأكثر مبيعاً", noSales: "لا توجد مبيعات في هذه الفترة", uncategorized: "بدون فئة", edit: "تعديل", qty: "الكمية" },
+} as const;
+export const TX = { en: { ...T.en, ...EXTRA.en }, fr: { ...T.fr, ...EXTRA.fr }, ar: { ...T.ar, ...EXTRA.ar } };
+
+/** Start of the period (local time) containing `now`. Weeks start on Monday. */
+export function periodStart(period: "day" | "week" | "month", now = new Date()): number {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (period === "week") d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  if (period === "month") d.setDate(1);
+  return d.getTime();
+}
+
+export function summarize(sales: Sale[], from: number) {
+  const s = sales.filter((x) => x.at >= from);
+  const revenue = s.reduce((a, x) => a + x.total, 0);
+  const cash = s.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0);
+  const top = new Map<string, { name: Record<Lang, string>; qty: number; amount: number }>();
+  for (const x of s) for (const l of x.lines) {
+    const e = top.get(l.id) ?? { name: l.name, qty: 0, amount: 0 };
+    e.qty += l.qty; e.amount += l.qty * l.price; top.set(l.id, e);
+  }
+  return { sales: s, count: s.length, revenue, cash, card: revenue - cash, avg: s.length ? revenue / s.length : 0, top: [...top.values()].sort((a, b) => b.qty - a.qty) };
+}
+
 export type TKey = keyof typeof T.en;
