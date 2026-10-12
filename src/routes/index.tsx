@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
 
 type Line = { item: Item; qty: number };
 type OrderType = "dineIn" | "takeaway";
-type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number; date: string; lang: Lang };
+type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number | undefined; date: string; lang: Lang };
 
 function Register() {
   useDir();
