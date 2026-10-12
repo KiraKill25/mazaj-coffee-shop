@@ -67,7 +67,7 @@ function Register() {
   }, [printed]);
 
   return (
-    <div className="flex h-dvh flex-col bg-background text-foreground no-print">
+    <div className="flex h-dvh flex-col bg-background text-foreground">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-card px-4 py-3 sm:flex sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary font-display text-xl font-black text-primary-foreground">🍔</div>
