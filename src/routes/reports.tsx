@@ -8,7 +8,8 @@ import { PinGate } from "@/components/PinGate";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Sales Reports — Fast Food POS" },
+      { title: "Sales Reports — MAZAJ Coffee Shop" },
+
       { name: "description", content: "Daily, weekly and monthly sales reports with full order history." },
       { property: "og:title", content: "Sales Reports — Fast Food POS" },
       { property: "og:description", content: "Daily, weekly and monthly sales reports and order history." },

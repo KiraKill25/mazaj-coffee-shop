@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
 import { Minus, Plus, Package, BarChart3, Trash2, Banknote, CreditCard } from "lucide-react";
 import { T, TX, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
@@ -7,10 +8,10 @@ import { LangBar, useDir } from "@/components/LangBar";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Register — Fast Food POS" },
-      { name: "description", content: "Touch-friendly fast food register with photo menu, cash & card checkout and receipt printing." },
-      { property: "og:title", content: "Register — Fast Food POS" },
-      { property: "og:description", content: "Touch-friendly fast food register with photo menu and receipt printing." },
+      { title: "Register — MAZAJ Coffee Shop" },
+      { name: "description", content: "MAZAJ Coffee Shop register: touch-friendly menu with photos, cash & card checkout and receipt printing." },
+      { property: "og:title", content: "Register — MAZAJ Coffee Shop" },
+      { property: "og:description", content: "MAZAJ Coffee Shop register with photo menu and receipt printing." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -70,8 +71,8 @@ function Register() {
     <div className="flex h-dvh flex-col bg-background text-foreground">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-card px-4 py-3 sm:flex sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary font-display text-xl font-black text-primary-foreground">🍔</div>
-          <h1 className="truncate font-display text-xl font-extrabold">{t.register}</h1>
+          <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="h-11 w-11 shrink-0 rounded-xl border border-border object-cover" />
+          <h1 className="truncate font-display text-xl font-extrabold">MAZAJ <span className="font-bold text-muted-foreground">· {t.register}</span></h1>
           <span className="hidden rounded-lg bg-accent px-3 py-1 text-sm font-bold text-accent-foreground sm:inline">{t.nextOrder} {fmtOrder(pos.nextOrder)}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -172,7 +173,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
   return (
     <div id="print-area" dir={done.lang === "ar" ? "rtl" : "ltr"}>
       <div className="receipt">
-        <h2>FAST FOOD</h2>
+        <h2>MAZAJ COFFEE SHOP</h2>
         <p className="c">{done.date}</p>
         <p className="big c">{t.order} {fmtOrder(done.num)}</p>
         <p className="c">{t[done.type]}</p>

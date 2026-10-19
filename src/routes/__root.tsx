@@ -78,15 +78,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Fast Food POS" },
-      { name: "description", content: "Fast food register" },
+      { title: "MAZAJ Coffee Shop" },
+      { name: "description", content: "MAZAJ Coffee Shop — touch-friendly register with trilingual menu, cash & card checkout and receipt printing." },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Cairo:wght@400;700;900&family=Nunito+Sans:wght@400;600;700;800;900&display=swap" },
