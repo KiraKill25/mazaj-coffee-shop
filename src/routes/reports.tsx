@@ -71,15 +71,7 @@ function Reports() {
           <p className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">{t.noSales}</p>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-            <section className="space-y-2 rounded-2xl border border-border bg-card p-4">
-              <h2 className="font-display text-lg font-extrabold">{t.topItems}</h2>
-              {r.top.slice(0, 10).map((x, i) => (
-                <div key={i} className="flex justify-between gap-2 border-b border-border py-2 last:border-0">
-                  <span className="truncate font-semibold">{x.qty} × {x.name[pos.lang]}</span>
-                  <span className="shrink-0 font-bold">{money(x.amount, pos.currency)}</span>
-                </div>
-              ))}
-            </section>
+            <BestSellers sales={r.sales} lang={pos.lang} currency={pos.currency} title={t.topItems} labels={{ all: pos.lang === "ar" ? "الكل" : pos.lang === "fr" ? "Tout" : "All", dine: t.dine, take: t.take }} />
             <section className="space-y-2 rounded-2xl border border-border bg-card p-4">
               <h2 className="font-display text-lg font-extrabold">{t.history}</h2>
               {[...r.sales].reverse().map((s) => (
