@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Package } from "lucide-react";
+import { ArrowLeft, Package , Wallet } from "lucide-react";
 import { TX, fmtOrder, money, periodStart, summarize, usePos } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
@@ -47,6 +47,7 @@ function Reports() {
         <div className="flex items-center gap-2">
           <LangBar />
           <Link to="/inventory" aria-label={t.inventory} className="grid h-12 w-12 place-items-center rounded-xl bg-muted"><Package /></Link>
+          <Link to="/expenses" aria-label="Expenses" title="Expenses" className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Wallet /></Link>
         </div>
       </header>
 

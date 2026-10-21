@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
-import { Minus, Plus, Package, BarChart3, Trash2, Banknote, CreditCard } from "lucide-react";
+import { Minus, Plus, Package, BarChart3, Trash2, Banknote, CreditCard , Wallet } from "lucide-react";
 import { T, TX, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 
@@ -79,6 +79,7 @@ function Register() {
           <LangBar />
           <Link to="/reports" aria-label={t.reports} title={t.reports} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><BarChart3 /></Link>
           <Link to="/inventory" aria-label={t.inventory} title={t.inventory} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Package /></Link>
+          <Link to="/expenses" aria-label="Expenses" title="Expenses" className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Wallet /></Link>
         </div>
       </header>
 

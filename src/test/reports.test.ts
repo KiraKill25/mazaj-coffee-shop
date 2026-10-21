@@ -20,3 +20,17 @@ describe("sales reports", () => {
     expect(r.card).toBe(6);
   });
 });
+
+import { summarizeExpenses } from "@/lib/pos";
+describe("summarizeExpenses", () => {
+  it("totals expenses in period and groups by category", () => {
+    const r = summarizeExpenses([
+      { id: "a", at: 100, category: "rent", label: "x", amount: 500 },
+      { id: "b", at: 200, category: "salaries", label: "y", amount: 800 },
+      { id: "c", at: 300, category: "rent", label: "z", amount: 50 },
+      { id: "d", at: 10, category: "rent", label: "old", amount: 999 },
+    ], 50);
+    expect(r.total).toBe(1350);
+    expect(r.byCat).toEqual([["salaries", 800], ["rent", 550]]);
+  });
+});
