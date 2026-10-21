@@ -17,6 +17,7 @@ export const Route = createFileRoute("/inventory")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  ssr: false,
   component: () => { useDir(); return <PinGate>{(lock) => <Inventory lock={lock} />}</PinGate>; },
 });
 

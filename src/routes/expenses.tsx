@@ -16,6 +16,7 @@ export const Route = createFileRoute("/expenses")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  ssr: false,
   component: () => { useDir(); return <PinGate>{() => <Expenses />}</PinGate>; },
 });
 
