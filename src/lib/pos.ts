@@ -9,6 +9,8 @@ export type Category = { id: string; name: Record<Lang, string> };
 export type SaleLine = { id: string; name: Record<Lang, string>; price: number; qty: number };
 export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; method: "cash" | "card"; total: number; lines: SaleLine[] };
 
+export type Expense = { id: string; at: number; category: string; label: string; amount: number; note?: string };
+
 export type Item = {
   id: string;
   name: Record<Lang, string>;
@@ -22,6 +24,8 @@ export type PosState = {
   items: Item[];
   categories: Category[];
   sales: Sale[];
+  expenses: Expense[];
+  expenseCategories: Category[];
   nextOrder: number;
   pin: string;
   currency: string;
@@ -49,6 +53,14 @@ const seed = (): PosState => ({
     { id: "desserts", name: { en: "Desserts", fr: "Desserts", ar: "حلويات" } },
   ],
   sales: [],
+  expenses: [],
+  expenseCategories: [
+    { id: "purchases", name: { en: "Purchases & supplies", fr: "Achats & fournitures", ar: "مشتريات ولوازم" } },
+    { id: "salaries", name: { en: "Salaries", fr: "Salaires", ar: "رواتب" } },
+    { id: "rent", name: { en: "Rent", fr: "Loyer", ar: "إيجار" } },
+    { id: "utilities", name: { en: "Utilities (water, power, gas)", fr: "Charges (eau, électricité, gaz)", ar: "فواتير (ماء، كهرباء، غاز)" } },
+    { id: "other", name: { en: "Other", fr: "Autres", ar: "أخرى" } },
+  ],
   nextOrder: 1,
   pin: "1234",
   currency: "€",
@@ -125,6 +137,14 @@ export function summarize(sales: Sale[], from: number) {
     e.qty += l.qty; e.amount += l.qty * l.price; top.set(l.id, e);
   }
   return { sales: s, count: s.length, revenue, cash, card: revenue - cash, avg: s.length ? revenue / s.length : 0, top: [...top.values()].sort((a, b) => b.qty - a.qty) };
+}
+
+/** Expenses since `from`, total and per-category breakdown (largest first). */
+export function summarizeExpenses(expenses: Expense[], from: number) {
+  const e = expenses.filter((x) => x.at >= from);
+  const byCat = new Map<string, number>();
+  for (const x of e) byCat.set(x.category, (byCat.get(x.category) ?? 0) + x.amount);
+  return { expenses: e, total: e.reduce((a, x) => a + x.amount, 0), byCat: [...byCat.entries()].sort((a, b) => b[1] - a[1]) };
 }
 
 export type TKey = keyof typeof T.en;

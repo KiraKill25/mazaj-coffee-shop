@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, BarChart3, Check, Pencil, Trash2, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Check, Pencil, Trash2, X , Wallet } from "lucide-react";
 import { TX, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
@@ -100,6 +100,7 @@ function Inventory({ lock }: { lock: () => void }) {
         <div className="flex items-center gap-2">
           <LangBar />
           <Link to="/reports" aria-label={t.reports} className="grid h-12 w-12 place-items-center rounded-xl bg-muted"><BarChart3 /></Link>
+          <Link to="/expenses" aria-label="Expenses" title="Expenses" className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Wallet /></Link>
         </div>
       </header>
 
