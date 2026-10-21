@@ -9,7 +9,7 @@ export type Category = { id: string; name: Record<Lang, string> };
 export type SaleLine = { id: string; name: Record<Lang, string>; price: number; qty: number };
 export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; method: "cash" | "card"; total: number; lines: SaleLine[] };
 
-export type Expense = { id: string; at: number; category: string; label: string; amount: number; note?: string };
+export type Expense = { id: string; at: number; category: string; label: string; amount: number; note?: string | undefined };
 
 export type Item = {
   id: string;
