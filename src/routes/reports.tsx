@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Package , Wallet } from "lucide-react";
-import { TX, fmtOrder, money, periodStart, summarize, usePos } from "@/lib/pos";
+import { type Lang, type Sale, TX, fmtOrder, money, periodStart, summarize, usePos } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -71,15 +71,7 @@ function Reports() {
           <p className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">{t.noSales}</p>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-            <section className="space-y-2 rounded-2xl border border-border bg-card p-4">
-              <h2 className="font-display text-lg font-extrabold">{t.topItems}</h2>
-              {r.top.slice(0, 10).map((x, i) => (
-                <div key={i} className="flex justify-between gap-2 border-b border-border py-2 last:border-0">
-                  <span className="truncate font-semibold">{x.qty} × {x.name[pos.lang]}</span>
-                  <span className="shrink-0 font-bold">{money(x.amount, pos.currency)}</span>
-                </div>
-              ))}
-            </section>
+            <BestSellers sales={r.sales} lang={pos.lang} currency={pos.currency} title={t.topItems} labels={{ all: t.all, dine: t.dineIn, take: t.takeaway }} />
             <section className="space-y-2 rounded-2xl border border-border bg-card p-4">
               <h2 className="font-display text-lg font-extrabold">{t.history}</h2>
               {[...r.sales].reverse().map((s) => (
@@ -100,5 +92,47 @@ function Reports() {
         )}
       </div>
     </div>
+  );
+}
+
+function BestSellers({ sales, lang, currency, title, labels }: { sales: Sale[]; lang: Lang; currency: string; title: string; labels: { all: string; dine: string; take: string } }) {
+  const [f, setF] = useState<"all" | "dineIn" | "takeaway">("all");
+  const [by, setBy] = useState<"qty" | "amount">("qty");
+  const map = new Map<string, { name: Record<Lang, string>; qty: number; amount: number }>();
+  for (const s of sales) {
+    if (f !== "all" && s.type !== f) continue;
+    for (const l of s.lines) {
+      const e = map.get(l.id) ?? { name: l.name, qty: 0, amount: 0 };
+      e.qty += l.qty; e.amount += l.qty * l.price; map.set(l.id, e);
+    }
+  }
+  const rows = [...map.values()].sort((a, b) => b[by] - a[by]);
+  const max = rows[0]?.[by] || 1;
+  const medal = ["🥇", "🥈", "🥉"];
+  const pill = (on: boolean) => `h-10 flex-1 rounded-lg px-3 text-sm font-bold ${on ? "bg-foreground text-background" : "text-muted-foreground"}`;
+  return (
+    <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+      <h2 className="font-display text-lg font-extrabold">{title}</h2>
+      <div className="flex gap-1 rounded-xl bg-muted p-1">
+        {(["all", "dineIn", "takeaway"] as const).map((k) => (
+          <button key={k} onClick={() => setF(k)} className={pill(f === k)}>{k === "all" ? labels.all : k === "dineIn" ? labels.dine : labels.take}</button>
+        ))}
+      </div>
+      <div className="flex gap-1 rounded-xl bg-muted p-1">
+        <button onClick={() => setBy("qty")} className={pill(by === "qty")}>#</button>
+        <button onClick={() => setBy("amount")} className={pill(by === "amount")}>{currency}</button>
+      </div>
+      {rows.slice(0, 10).map((x, i) => (
+        <div key={i} className="space-y-1">
+          <div className="flex justify-between gap-2">
+            <span className="truncate font-semibold">{medal[i] ?? `${i + 1}.`} {x.name[lang]}</span>
+            <span className="shrink-0 text-sm font-bold">{x.qty} · {money(x.amount, currency)}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${(x[by] / max) * 100}%` }} />
+          </div>
+        </div>
+      ))}
+    </section>
   );
 }
