@@ -179,7 +179,7 @@ function Inventory({ lock }: { lock: () => void }) {
               <input inputMode="numeric" value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 8))} className={input} />
               <button onClick={() => { if (newPin.length >= 4) { setPos((s) => ({ ...s, pin: newPin })); setNewPin(""); } }} className="h-12 shrink-0 rounded-xl bg-accent px-4 font-bold text-accent-foreground">{t.save}</button>
             </div>
-            <button onClick={() => confirm(`${t.resetCounter}?`) && setPos((s) => ({ ...s, nextOrder: 1 }))} className="h-12 w-full rounded-xl bg-muted font-bold">{t.resetCounter} (#001)</button>
+            <button onClick={() => confirm(`${t.resetCounter}?`) && setPos((s) => ({ ...s, nextOrder: 1, orderDay: "" }))} className="h-12 w-full rounded-xl bg-muted font-bold">{t.resetCounter} (#001)</button>
             <button onClick={lock} className="h-12 w-full rounded-xl bg-muted font-bold">{t.lock}</button>
           </div>
         </aside>

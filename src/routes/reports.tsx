@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Package , Wallet } from "lucide-react";
-import { type Lang, type Sale, TX, fmtOrder, money, periodStart, summarize, usePos } from "@/lib/pos";
+import { type Lang, type Sale, TX, CX, fmtDateTime, setPos, fmtOrder, money, periodStart, summarize, usePos } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/reports")({
       { title: "Sales Reports — MAZAJ Coffee Shop" },
 
       { name: "description", content: "Daily, weekly and monthly sales reports with full order history." },
-      { property: "og:title", content: "Sales Reports — Fast Food POS" },
+      { property: "og:title", content: "Sales Reports — MAZAJ Coffee Shop" },
       { property: "og:description", content: "Daily, weekly and monthly sales reports and order history." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -28,7 +28,12 @@ function Reports() {
   const t = TX[pos.lang];
   const [period, setPeriod] = useState<Period>("day");
   const r = summarize(pos.sales ?? [], periodStart(period));
-  const locale = pos.lang === "ar" ? "ar" : pos.lang === "fr" ? "fr-FR" : "en-GB";
+  const c = CX[pos.lang];
+  const cancel = (s: Sale) => {
+    const reason = window.prompt(c.reason);
+    if (reason === null) return;
+    setPos((st) => ({ ...st, sales: st.sales.map((x) => (x.at === s.at && x.num === s.num ? { ...x, cancelled: { at: Date.now(), reason: reason.trim() || undefined } } : x)) }));
+  };
   const labels: Record<Period, string> = { day: t.today, week: t.week, month: t.month };
 
   const stat = (label: string, value: string) => (
@@ -67,23 +72,26 @@ function Reports() {
           {stat(t.card, money(r.card, pos.currency))}
         </div>
 
-        {r.count === 0 ? (
+        {r.all.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">{t.noSales}</p>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
             <BestSellers sales={r.sales} lang={pos.lang} currency={pos.currency} title={t.topItems} labels={{ all: t.all, dine: t.dineIn, take: t.takeaway }} />
             <section className="space-y-2 rounded-2xl border border-border bg-card p-4">
               <h2 className="font-display text-lg font-extrabold">{t.history}</h2>
-              {[...r.sales].reverse().map((s) => (
-                <details key={s.at} className="rounded-xl bg-muted px-3 py-2">
+              {[...r.all].reverse().map((s) => (
+                <details key={s.at} className={`rounded-xl bg-muted px-3 py-2 ${s.cancelled ? "opacity-60" : ""}`}>
                   <summary className="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-extrabold">{fmtOrder(s.num)}</span>
-                    <span className="text-sm text-muted-foreground">{new Date(s.at).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" })}</span>
+                    <span className="text-sm text-muted-foreground">{fmtDateTime(s.at, pos.lang)}</span>
                     <span className="text-sm font-semibold">{t[s.type]} · {t[s.method]}</span>
-                    <span className="ms-auto font-bold">{money(s.total, pos.currency)}</span>
+                    {s.cancelled && <span className="rounded-md bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{c.cancelled}</span>}
+                    <span className={`ms-auto font-bold ${s.cancelled ? "line-through" : ""}`}>{money(s.total, pos.currency)}</span>
                   </summary>
                   <div className="mt-2 space-y-1 text-sm">
                     {s.lines.map((l) => <div key={l.id} className="flex justify-between"><span>{l.qty} × {l.name[pos.lang]}</span><span>{money(l.qty * l.price, pos.currency)}</span></div>)}
+                    {s.cancelled ? <p className="pt-1 text-destructive">{c.cancelled} · {fmtDateTime(s.cancelled.at, pos.lang)}{s.cancelled.reason ? ` · ${s.cancelled.reason}` : ""}</p>
+                      : <button onClick={() => cancel(s)} className="mt-2 h-10 rounded-lg bg-destructive/10 px-4 font-bold text-destructive">{c.cancelOrder}</button>}
                   </div>
                 </details>
               ))}
