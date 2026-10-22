@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
-import { Minus, Plus, Package, BarChart3, Trash2, Banknote, CreditCard , Wallet } from "lucide-react";
-import { T, TX, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
+import { Minus, Plus, Package, BarChart3, Trash2, Banknote, CreditCard, Wallet, Vault } from "lucide-react";
+import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 
 export const Route = createFileRoute("/")({
@@ -21,12 +21,18 @@ export const Route = createFileRoute("/")({
 
 type Line = { item: Item; qty: number };
 type OrderType = "dineIn" | "takeaway";
-type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number | undefined; date: string; lang: Lang };
+type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number | undefined; at: number; lang: Lang };
 
 function Register() {
   useDir();
   const pos = usePos();
   const t = TX[pos.lang];
+  const c = CX[pos.lang];
+  const orderNum = currentOrderNum(pos);
+  const session = openSession(pos);
+  const [float, setFloat] = useState("");
+  const [now, setNow] = useState(0);
+  useEffect(() => setNow(Date.now()), []);
   const [cat, setCat] = useState<string>("all");
   const [cart, setCart] = useState<Line[]>([]);
   const [type, setType] = useState<OrderType>("dineIn");
@@ -53,8 +59,9 @@ function Register() {
     .filter((v) => v >= total && v > 0).sort((a, b) => a - b).slice(0, 6);
 
   const confirm = () => {
-    const done: Done = { num: pos.nextOrder, type, lines: cart, total, method: pay!, received: pay === "cash" ? rec : undefined, date: new Date().toLocaleString("fr-FR"), lang: pos.lang };
-    setPos((s) => ({ ...s, nextOrder: s.nextOrder + 1, sales: [...(s.sales ?? []), { num: s.nextOrder, at: Date.now(), type, method: pay!, total, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) }] }));
+    const at = Date.now();
+    const done: Done = { num: orderNum, type, lines: cart, total, method: pay!, received: pay === "cash" ? rec : undefined, at, lang: pos.lang };
+    setPos((s) => ({ ...s, nextOrder: currentOrderNum(s, at) + 1, orderDay: dayKey(at), sales: [...(s.sales ?? []), { num: currentOrderNum(s, at), at, type, method: pay!, total, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) }] }));
     setPrinted(done);
     setCart([]);
     setPay(null);
@@ -73,16 +80,20 @@ function Register() {
         <div className="flex min-w-0 items-center gap-3">
           <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="h-11 w-11 shrink-0 rounded-xl border border-border object-cover" />
           <h1 className="truncate font-display text-xl font-extrabold">MAZAJ <span className="font-bold text-muted-foreground">· {t.register}</span></h1>
-          <span className="hidden rounded-lg bg-accent px-3 py-1 text-sm font-bold text-accent-foreground sm:inline">{t.nextOrder} {fmtOrder(pos.nextOrder)}</span>
+          <span className="hidden rounded-lg bg-accent px-3 py-1 text-sm font-bold text-accent-foreground sm:inline">{t.nextOrder} {fmtOrder(orderNum)}</span>
         </div>
         <div className="flex items-center gap-2">
           <LangBar />
           <Link to="/reports" aria-label={t.reports} title={t.reports} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><BarChart3 /></Link>
           <Link to="/inventory" aria-label={t.inventory} title={t.inventory} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Package /></Link>
+          <Link to="/cash" aria-label={c.cashDesk} title={c.cashDesk} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Vault /></Link>
           <Link to="/expenses" aria-label="Expenses" title="Expenses" className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Wallet /></Link>
         </div>
       </header>
 
+      {now > 0 && now - (pos.lastBackup ?? 0) > 7 * 864e5 && (
+        <Link to="/cash" className="bg-accent px-4 py-2 text-center text-sm font-bold text-accent-foreground">{c.remind}</Link>
+      )}
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <main className="flex min-h-0 flex-1 flex-col">
           <div className="flex gap-2 overflow-x-auto px-4 py-3">
@@ -106,7 +117,7 @@ function Register() {
 
         <aside className="flex max-h-[45dvh] w-full flex-col border-t border-border bg-card md:max-h-none md:w-96 md:border-s md:border-t-0">
           <div className="flex items-center justify-between gap-2 p-4">
-            <div className="font-display text-lg font-extrabold">{t.order} {fmtOrder(pos.nextOrder)}</div>
+            <div className="font-display text-lg font-extrabold">{t.order} {fmtOrder(orderNum)}</div>
             <div className="flex rounded-xl bg-muted p-1">
               {(["dineIn", "takeaway"] as const).map((o) => (
                 <button key={o} onClick={() => setType(o)} className={`h-10 rounded-lg px-3 text-sm font-bold ${type === o ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>{t[o]}</button>
@@ -163,6 +174,18 @@ function Register() {
         </div>
       )}
 
+      {now > 0 && !session && (
+        <div className="fixed inset-0 z-40 grid place-items-center bg-foreground/50 p-4">
+          <div className="w-full max-w-sm space-y-4 rounded-3xl bg-card p-6 text-center shadow-xl">
+            <img src={logoAsset.url} alt="MAZAJ Coffee Shop" className="mx-auto h-20 w-20 rounded-2xl object-cover" />
+            <h2 className="font-display text-2xl font-black">{c.openTitle}</h2>
+            <label className="block text-sm font-bold text-muted-foreground">{c.float} ({pos.currency})</label>
+            <input inputMode="decimal" autoFocus value={float} onChange={(e) => setFloat(e.target.value)} placeholder="0.00" className="h-14 w-full rounded-xl border border-input bg-background px-4 text-center text-2xl font-bold" />
+            <button onClick={() => { const f = parseFloat(float.replace(",", ".")) || 0; setPos((s) => ({ ...s, sessions: [...(s.sessions ?? []), { id: crypto.randomUUID(), openedAt: Date.now(), float: f }] })); setFloat(""); }} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{c.open}</button>
+          </div>
+        </div>
+      )}
+
       {printed && <PrintArea done={printed} currency={pos.currency} />}
     </div>
   );
@@ -175,7 +198,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
     <div id="print-area" dir={done.lang === "ar" ? "rtl" : "ltr"}>
       <div className="receipt">
         <h2>MAZAJ COFFEE SHOP</h2>
-        <p className="c">{done.date}</p>
+        <p className="c">{fmtDateTime(done.at, done.lang)}</p>
         <p className="big c">{t.order} {fmtOrder(done.num)}</p>
         <p className="c">{t[done.type]}</p>
         <hr />
@@ -193,7 +216,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
         <h2>CUISINE</h2>
         <p className="big c">{fr.order} {fmtOrder(done.num)}</p>
         <p className="big c">{fr[done.type].toUpperCase()}</p>
-        <p className="c">{done.date}</p>
+        <p className="c">{fmtDateTime(done.at, "fr")}</p>
         <hr />
         {done.lines.map((l) => <p className="big" key={l.item.id}>{l.qty} × {l.item.name.fr}</p>)}
         <hr />

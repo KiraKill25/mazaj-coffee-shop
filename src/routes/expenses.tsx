@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, BarChart3, Check, Package, Pencil, Trash2, X } from "lucide-react";
-import { money, periodStart, setPos, summarize, summarizeExpenses, usePos, type Lang } from "@/lib/pos";
+import { CX, fmtDate, money, periodStart, setPos, summarize, summarizeExpenses, usePos, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { PinGate } from "@/components/PinGate";
 
@@ -38,7 +38,7 @@ function Expenses() {
   const t = L[pos.lang];
   const cats = pos.expenseCategories ?? [];
   const [period, setPeriod] = useState<Period>("month");
-  const [draft, setDraft] = useState({ label: "", amount: "", category: cats[0]?.id ?? "", date: today(), note: "" });
+  const [draft, setDraft] = useState({ label: "", amount: "", category: cats[0]?.id ?? "", date: today(), note: "", fromDrawer: false });
   const [newCat, setNewCat] = useState<Names>(blank);
   const [editCat, setEditCat] = useState<{ id: string; name: Names } | null>(null);
 
@@ -46,15 +46,14 @@ function Expenses() {
   const r = summarizeExpenses(pos.expenses ?? [], from);
   const revenue = summarize(pos.sales ?? [], from).revenue;
   const catName = (id: string) => cats.find((c) => c.id === id)?.name[pos.lang] ?? t.other;
-  const locale = pos.lang === "ar" ? "ar" : pos.lang === "fr" ? "fr-FR" : "en-GB";
 
   const add = () => {
     const amount = parseFloat(draft.amount.replace(",", "."));
     if (!draft.label.trim() || !(amount > 0)) return;
     const d = new Date(draft.date + "T12:00:00");
     const at = draft.date === today() ? Date.now() : d.getTime();
-    setPos((s) => ({ ...s, expenses: [...(s.expenses ?? []), { id: crypto.randomUUID(), at, category: draft.category, label: draft.label.trim(), amount, note: draft.note.trim() || undefined }] }));
-    setDraft({ ...draft, label: "", amount: "", note: "" });
+    setPos((s) => ({ ...s, expenses: [...(s.expenses ?? []), { id: crypto.randomUUID(), at, category: draft.category, label: draft.label.trim(), amount, note: draft.note.trim() || undefined, fromDrawer: draft.fromDrawer || undefined }] }));
+    setDraft({ ...draft, label: "", amount: "", note: "", fromDrawer: false });
   };
   const addCat = () => {
     if (!newCat.fr.trim()) return;
@@ -119,7 +118,7 @@ function Expenses() {
                 <div key={e.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-bold">{e.label}</div>
-                    <div className="text-sm text-muted-foreground">{catName(e.category)} · {new Date(e.at).toLocaleDateString(locale)}{e.note ? ` · ${e.note}` : ""}</div>
+                    <div className="text-sm text-muted-foreground">{catName(e.category)} · {fmtDate(e.at, pos.lang)}{e.fromDrawer ? " · 💵" : ""}{e.note ? ` · ${e.note}` : ""}</div>
                   </div>
                   <div className="font-display text-lg font-black">{money(e.amount, pos.currency)}</div>
                   <button onClick={() => confirm(`${t.del}?`) && setPos((s) => ({ ...s, expenses: s.expenses.filter((x) => x.id !== e.id) }))} aria-label={t.del} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-destructive"><Trash2 /></button>
@@ -139,6 +138,7 @@ function Expenses() {
             </select>
             <input type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} className={input} />
             <input placeholder={t.note} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} className={input} />
+            <label className="flex items-center gap-3 font-semibold"><input type="checkbox" checked={draft.fromDrawer} onChange={(e) => setDraft({ ...draft, fromDrawer: e.target.checked })} className="h-6 w-6 accent-[var(--primary)]" />{CX[pos.lang].fromDrawer}</label>
             <button onClick={add} className="h-12 w-full rounded-xl bg-primary font-bold text-primary-foreground">{t.add}</button>
           </div>
 

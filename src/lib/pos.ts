@@ -7,9 +7,11 @@ import soda from "@/assets/soda.jpg";
 export type Lang = "en" | "fr" | "ar";
 export type Category = { id: string; name: Record<Lang, string> };
 export type SaleLine = { id: string; name: Record<Lang, string>; price: number; qty: number };
-export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; method: "cash" | "card"; total: number; lines: SaleLine[] };
+export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; method: "cash" | "card"; total: number; lines: SaleLine[]; cancelled?: { at: number; reason?: string | undefined } | undefined };
 
-export type Expense = { id: string; at: number; category: string; label: string; amount: number; note?: string | undefined };
+export type Expense = { id: string; at: number; category: string; label: string; amount: number; note?: string | undefined; fromDrawer?: boolean | undefined };
+
+export type Session = { id: string; openedAt: number; float: number; closedAt?: number | undefined; counted?: number | undefined };
 
 export type Item = {
   id: string;
@@ -27,6 +29,9 @@ export type PosState = {
   expenses: Expense[];
   expenseCategories: Category[];
   nextOrder: number;
+  orderDay: string;
+  sessions: Session[];
+  lastBackup: number;
   pin: string;
   currency: string;
   lang: Lang;
@@ -62,6 +67,9 @@ const seed = (): PosState => ({
     { id: "other", name: { en: "Other", fr: "Autres", ar: "أخرى" } },
   ],
   nextOrder: 1,
+  orderDay: "",
+  sessions: [],
+  lastBackup: 0,
   pin: "1234",
   currency: "€",
   lang: "fr",
@@ -80,6 +88,11 @@ function load(): PosState {
     state = seed();
   }
   return state!;
+}
+
+/** Replace the whole state (used by backup restore). */
+export function replacePos(next: Partial<PosState>) {
+  setPos(() => ({ ...seed(), ...next }));
 }
 
 export function setPos(update: (s: PosState) => PosState) {
@@ -128,7 +141,8 @@ export function periodStart(period: "day" | "week" | "month", now = new Date()):
 }
 
 export function summarize(sales: Sale[], from: number) {
-  const s = sales.filter((x) => x.at >= from);
+  const all = sales.filter((x) => x.at >= from);
+  const s = all.filter((x) => !x.cancelled);
   const revenue = s.reduce((a, x) => a + x.total, 0);
   const cash = s.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0);
   const top = new Map<string, { name: Record<Lang, string>; qty: number; amount: number }>();
@@ -136,7 +150,7 @@ export function summarize(sales: Sale[], from: number) {
     const e = top.get(l.id) ?? { name: l.name, qty: 0, amount: 0 };
     e.qty += l.qty; e.amount += l.qty * l.price; top.set(l.id, e);
   }
-  return { sales: s, count: s.length, revenue, cash, card: revenue - cash, avg: s.length ? revenue / s.length : 0, top: [...top.values()].sort((a, b) => b.qty - a.qty) };
+  return { all, sales: s, count: s.length, revenue, cash, card: revenue - cash, avg: s.length ? revenue / s.length : 0, top: [...top.values()].sort((a, b) => b.qty - a.qty) };
 }
 
 /** Expenses since `from`, total and per-category breakdown (largest first). */
@@ -148,3 +162,40 @@ export function summarizeExpenses(expenses: Expense[], from: number) {
 }
 
 export type TKey = keyof typeof T.en;
+
+/** Local calendar day key YYYY-MM-DD. */
+export function dayKey(ts: number) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+/** Order numbers restart at 1 every calendar day. */
+export const currentOrderNum = (s: Pick<PosState, "nextOrder" | "orderDay">, now = Date.now()) =>
+  s.orderDay === dayKey(now) ? s.nextOrder : 1;
+
+export const localeOf = (l: Lang) => (l === "ar" ? "ar-DZ" : l === "fr" ? "fr-FR" : "en-GB");
+export const fmtDate = (ts: number, l: Lang) => new Date(ts).toLocaleDateString(localeOf(l), { day: "2-digit", month: "2-digit", year: "numeric" });
+export const fmtDateTime = (ts: number, l: Lang) =>
+  new Date(ts).toLocaleString(localeOf(l), { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+
+export const openSession = (s: Pick<PosState, "sessions">) => (s.sessions ?? []).find((x) => !x.closedAt);
+
+/** Cash drawer figures for a session (up to its close, or now). */
+export function sessionTotals(s: Pick<PosState, "sales" | "expenses">, sess: Session, now = Date.now()) {
+  const end = sess.closedAt ?? now;
+  const inRange = (t: number) => t >= sess.openedAt && t <= end;
+  const sales = (s.sales ?? []).filter((x) => inRange(x.at) && !x.cancelled);
+  const cash = sales.filter((x) => x.method === "cash").reduce((a, x) => a + x.total, 0);
+  const card = sales.filter((x) => x.method === "card").reduce((a, x) => a + x.total, 0);
+  const cashOut = (s.expenses ?? []).filter((x) => x.fromDrawer && inRange(x.at)).reduce((a, x) => a + x.amount, 0);
+  const expected = sess.float + cash - cashOut;
+  return { orders: sales.length, cash, card, cashOut, expected, revenue: cash + card, diff: sess.counted == null ? null : sess.counted - expected };
+}
+
+const csvCell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+export const toCsv = (rows: (string | number)[][]) => "\uFEFF" + rows.map((r) => r.map(csvCell).join(";")).join("\r\n");
+
+export const CX = {
+  en: { openTitle: "Open the register", float: "Starting cash in drawer", open: "Open register", cashDesk: "Cash drawer & backup", opened: "Opened", cashSales: "Cash sales", cardSales: "Card sales", cashOut: "Cash paid out", expected: "Expected in drawer", counted: "Cash counted", diff: "Difference", closeReg: "Close register & print", sessions: "Past days", noOpen: "Register is closed", cancelOrder: "Cancel order", cancelled: "Cancelled", reason: "Reason for cancelling (optional)", fromDrawer: "Paid with cash from the drawer", backup: "Backup", exportAll: "Download full backup", restore: "Restore a backup", restoreOk: "Backup restored.", restoreBad: "This file is not a valid MAZAJ backup.", restoreConfirm: "Replace ALL current data with this backup?", csvSales: "Sales (Excel CSV)", csvExp: "Expenses (Excel CSV)", csvMenu: "Menu (Excel CSV)", lastBackup: "Last backup", never: "Never", remind: "No backup for more than 7 days — download one now.", zReport: "DAILY CLOSING", gained: "Takings of the day" },
+  fr: { openTitle: "Ouverture de caisse", float: "Fond de caisse", open: "Ouvrir la caisse", cashDesk: "Caisse & sauvegarde", opened: "Ouverte le", cashSales: "Ventes espèces", cardSales: "Ventes carte", cashOut: "Sorties de caisse", expected: "Attendu en caisse", counted: "Espèces comptées", diff: "Écart", closeReg: "Clôturer & imprimer", sessions: "Jours précédents", noOpen: "Caisse fermée", cancelOrder: "Annuler la commande", cancelled: "Annulée", reason: "Motif d'annulation (facultatif)", fromDrawer: "Payé en espèces depuis la caisse", backup: "Sauvegarde", exportAll: "Télécharger la sauvegarde complète", restore: "Restaurer une sauvegarde", restoreOk: "Sauvegarde restaurée.", restoreBad: "Ce fichier n'est pas une sauvegarde MAZAJ valide.", restoreConfirm: "Remplacer TOUTES les données actuelles par cette sauvegarde ?", csvSales: "Ventes (CSV Excel)", csvExp: "Charges (CSV Excel)", csvMenu: "Menu (CSV Excel)", lastBackup: "Dernière sauvegarde", never: "Jamais", remind: "Aucune sauvegarde depuis plus de 7 jours — téléchargez-en une.", zReport: "CLÔTURE DE CAISSE", gained: "Recette du jour" },
+  ar: { openTitle: "فتح الصندوق", float: "المبلغ الافتتاحي في الدرج", open: "فتح الصندوق", cashDesk: "الصندوق والنسخ الاحتياطي", opened: "فُتح في", cashSales: "مبيعات نقدية", cardSales: "مبيعات بالبطاقة", cashOut: "مصاريف من الصندوق", expected: "المتوقع في الدرج", counted: "النقد المعدود", diff: "الفرق", closeReg: "إغلاق الصندوق وطباعة", sessions: "الأيام السابقة", noOpen: "الصندوق مغلق", cancelOrder: "إلغاء الطلب", cancelled: "ملغى", reason: "سبب الإلغاء (اختياري)", fromDrawer: "مدفوع نقداً من الصندوق", backup: "النسخ الاحتياطي", exportAll: "تنزيل نسخة احتياطية كاملة", restore: "استعادة نسخة احتياطية", restoreOk: "تمت الاستعادة.", restoreBad: "هذا الملف ليس نسخة احتياطية صالحة.", restoreConfirm: "استبدال كل البيانات الحالية بهذه النسخة؟", csvSales: "المبيعات (CSV)", csvExp: "المصاريف (CSV)", csvMenu: "القائمة (CSV)", lastBackup: "آخر نسخة", never: "أبداً", remind: "لا توجد نسخة احتياطية منذ أكثر من 7 أيام — نزّل واحدة الآن.", zReport: "إغلاق الصندوق", gained: "إيراد اليوم" },
+};
