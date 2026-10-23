@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
-import { Minus, Plus, Package, BarChart3, Trash2, Banknote, CreditCard, Wallet, Vault } from "lucide-react";
+import { Minus, Plus, Trash2, Banknote, CreditCard, ShieldCheck } from "lucide-react";
 import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Splash } from "@/components/Splash";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -84,11 +86,10 @@ function Register() {
         </div>
         <div className="flex items-center gap-2">
           <LangBar />
-          <Link to="/reports" aria-label={t.reports} title={t.reports} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><BarChart3 /></Link>
-          <Link to="/inventory" aria-label={t.inventory} title={t.inventory} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Package /></Link>
-          <Link to="/cash" aria-label={c.cashDesk} title={c.cashDesk} className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Vault /></Link>
-          <Link to="/expenses" aria-label="Expenses" title="Expenses" className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground"><Wallet /></Link>
+          <ThemeToggle />
+          <Link to="/manage" aria-label="Management" title="Management" className="flex h-12 items-center gap-2 rounded-xl bg-primary px-3 font-bold text-primary-foreground"><ShieldCheck /><span className="hidden sm:inline">{{ en: "Management", fr: "Gestion", ar: "الإدارة" }[pos.lang]}</span></Link>
         </div>
+        <Splash />
       </header>
 
       {now > 0 && now - (pos.lastBackup ?? 0) > 7 * 864e5 && (
