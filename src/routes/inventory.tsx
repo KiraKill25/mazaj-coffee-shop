@@ -95,7 +95,7 @@ function Inventory({ lock }: { lock: () => void }) {
     <div className="min-h-dvh bg-background">
       <header className="sticky top-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-card px-4 py-3 sm:flex sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <Link to="/" aria-label={t.back} className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-muted"><ArrowLeft className="rtl:rotate-180" /></Link>
+          <Link to="/manage" aria-label={t.back} className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-muted"><ArrowLeft className="rtl:rotate-180" /></Link>
           <h1 className="truncate font-display text-xl font-extrabold">{t.inventory}</h1>
         </div>
         <div className="flex items-center gap-2">
