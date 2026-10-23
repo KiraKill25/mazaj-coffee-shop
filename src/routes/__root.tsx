@@ -114,6 +114,9 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", localStorage.getItem("mazaj-theme") === "dark");
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
