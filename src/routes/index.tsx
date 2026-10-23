@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
-import { Minus, Plus, Trash2, Banknote, CreditCard, ShieldCheck } from "lucide-react";
-import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang } from "@/lib/pos";
+import { Minus, Plus, Trash2, Banknote, CreditCard, ShieldCheck, ReceiptText, Printer, X } from "lucide-react";
+import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang, type Sale } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Splash } from "@/components/Splash";
@@ -76,6 +76,22 @@ function Register() {
     return () => clearTimeout(id);
   }, [printed]);
 
+  const [showOrders, setShowOrders] = useState(false);
+  const L = {
+    en: { title: "Today's orders", none: "No orders yet today", reprint: "Reprint", confirm: "Cancel this order?", reason: "Reason (optional)" },
+    fr: { title: "Commandes du jour", none: "Aucune commande aujourd'hui", reprint: "Réimprimer", confirm: "Annuler cette commande ?", reason: "Motif (facultatif)" },
+    ar: { title: "طلبات اليوم", none: "لا توجد طلبات اليوم", reprint: "إعادة الطباعة", confirm: "إلغاء هذا الطلب؟", reason: "السبب (اختياري)" },
+  }[pos.lang];
+  const today = dayKey(now || Date.now());
+  const todays = now ? (pos.sales ?? []).filter((s) => dayKey(s.at) === today).sort((a, b) => b.at - a.at) : [];
+  const cancelSale = (s: Sale) => {
+    if (!window.confirm(`${L.confirm} ${fmtOrder(s.num)}`)) return;
+    const reason = window.prompt(L.reason) ?? "";
+    setPos((st) => ({ ...st, sales: st.sales.map((x) => (x.at === s.at && x.num === s.num ? { ...x, cancelled: { at: Date.now(), reason: reason.trim() || undefined } } : x)) }));
+  };
+  const reprint = (s: Sale) =>
+    setPrinted({ num: s.num, type: s.type, method: s.method, total: s.total, at: s.at, lang: pos.lang, lines: s.lines.map((l) => ({ qty: l.qty, item: { id: l.id, name: l.name, price: l.price } as unknown as Item })) });
+
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-card px-4 py-3 sm:flex sm:justify-between">
@@ -87,6 +103,7 @@ function Register() {
         <div className="flex items-center gap-2">
           <LangBar />
           <ThemeToggle />
+          <button onClick={() => setShowOrders(true)} aria-label={L.title} title={L.title} className="relative flex h-12 items-center gap-2 rounded-xl bg-accent px-3 font-bold text-accent-foreground"><ReceiptText /><span className="hidden sm:inline">{L.title}</span>{todays.length > 0 && <span className="absolute -end-1.5 -top-1.5 min-w-5 rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground">{todays.length}</span>}</button>
           <Link to="/manage" aria-label="Management" title="Management" className="flex h-12 items-center gap-2 rounded-xl bg-primary px-3 font-bold text-primary-foreground"><ShieldCheck /><span className="hidden sm:inline">{{ en: "Management", fr: "Gestion", ar: "الإدارة" }[pos.lang]}</span></Link>
         </div>
         <Splash />
@@ -183,6 +200,43 @@ function Register() {
             <label className="block text-sm font-bold text-muted-foreground">{c.float} ({pos.currency})</label>
             <input inputMode="decimal" autoFocus value={float} onChange={(e) => setFloat(e.target.value)} placeholder="0.00" className="h-14 w-full rounded-xl border border-input bg-background px-4 text-center text-2xl font-bold" />
             <button onClick={() => { const f = parseFloat(float.replace(",", ".")) || 0; setPos((s) => ({ ...s, sessions: [...(s.sessions ?? []), { id: crypto.randomUUID(), openedAt: Date.now(), float: f }] })); setFloat(""); }} className="h-14 w-full rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">{c.open}</button>
+          </div>
+        </div>
+      )}
+
+      {showOrders && (
+        <div className="fixed inset-0 z-40 flex justify-end bg-foreground/40" onClick={() => setShowOrders(false)}>
+          <div className="flex h-full w-full max-w-md flex-col bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <h2 className="font-display text-xl font-extrabold">{L.title} ({todays.length})</h2>
+              <button onClick={() => setShowOrders(false)} aria-label="Close" className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted"><X /></button>
+            </div>
+            <div className="flex-1 space-y-2 overflow-y-auto p-4">
+              {todays.length === 0 && <p className="py-10 text-center text-muted-foreground">{L.none}</p>}
+              {todays.map((s) => (
+                <div key={s.at} className={`rounded-xl bg-muted p-3 ${s.cancelled ? "opacity-60" : ""}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-lg font-extrabold">{fmtOrder(s.num)}</span>
+                    <span className="text-sm text-muted-foreground">{fmtDateTime(s.at, pos.lang)}</span>
+                    <span className="rounded-md bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">{t[s.type]}</span>
+                    <span className="rounded-md bg-background px-2 py-0.5 text-xs font-bold">{t[s.method]}</span>
+                    {s.cancelled && <span className="rounded-md bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{c.cancelled}</span>}
+                    <span className={`ms-auto font-bold ${s.cancelled ? "line-through" : ""}`}>{money(s.total, pos.currency)}</span>
+                  </div>
+                  <ul className="mt-1 text-sm">
+                    {s.lines.map((l) => <li key={l.id}>{l.qty} × {l.name[pos.lang]}</li>)}
+                  </ul>
+                  {s.cancelled ? (
+                    <p className="pt-1 text-sm text-destructive">{c.cancelled} · {fmtDateTime(s.cancelled.at, pos.lang)}{s.cancelled.reason ? ` · ${s.cancelled.reason}` : ""}</p>
+                  ) : (
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => reprint(s)} className="flex h-11 items-center gap-2 rounded-lg bg-background px-3 font-bold"><Printer className="h-4 w-4" />{L.reprint}</button>
+                      <button onClick={() => cancelSale(s)} className="h-11 rounded-lg bg-destructive/10 px-3 font-bold text-destructive">{c.cancelOrder}</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
