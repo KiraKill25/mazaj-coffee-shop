@@ -13,9 +13,8 @@ export function Splash() {
     if (shown) return;
     shown = true;
     setState("in");
-    const a = setTimeout(() => setState("out"), 2600);
-    const b = setTimeout(() => setState("hidden"), 3200);
-    return () => { clearTimeout(a); clearTimeout(b); };
+    setTimeout(() => setState((v) => (v === "in" ? "out" : v)), 2600);
+    setTimeout(() => setState("hidden"), 3200);
   }, []);
   if (state === "hidden") return null;
   return (
