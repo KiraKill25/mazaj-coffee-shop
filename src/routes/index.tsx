@@ -110,7 +110,7 @@ function Register() {
       </header>
 
       {now > 0 && now - (pos.lastBackup ?? 0) > 7 * 864e5 && (
-        <Link to="/cash" className="bg-accent px-4 py-2 text-center text-sm font-bold text-accent-foreground">{c.remind}</Link>
+        <Link to="/settings" className="bg-accent px-4 py-2 text-center text-sm font-bold text-accent-foreground">{c.remind}</Link>
       )}
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <main className="flex min-h-0 flex-1 flex-col">
