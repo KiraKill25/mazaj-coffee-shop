@@ -170,18 +170,6 @@ function Inventory({ lock }: { lock: () => void }) {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
-            <h2 className="font-display text-lg font-extrabold">{t.settings}</h2>
-            <label className="block text-sm font-bold text-muted-foreground">{t.currency}</label>
-            <input value={pos.currency} onChange={(e) => setPos((s) => ({ ...s, currency: e.target.value.slice(0, 5) }))} className={input} />
-            <label className="block text-sm font-bold text-muted-foreground">{t.newPin}</label>
-            <div className="flex gap-2">
-              <input inputMode="numeric" value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 8))} className={input} />
-              <button onClick={() => { if (newPin.length >= 4) { setPos((s) => ({ ...s, pin: newPin })); setNewPin(""); } }} className="h-12 shrink-0 rounded-xl bg-accent px-4 font-bold text-accent-foreground">{t.save}</button>
-            </div>
-            <button onClick={() => confirm(`${t.resetCounter}?`) && setPos((s) => ({ ...s, nextOrder: 1, orderDay: "" }))} className="h-12 w-full rounded-xl bg-muted font-bold">{t.resetCounter} (#001)</button>
-            <button onClick={lock} className="h-12 w-full rounded-xl bg-muted font-bold">{t.lock}</button>
-          </div>
         </aside>
       </div>
     </div>

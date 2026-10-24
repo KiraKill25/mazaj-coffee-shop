@@ -155,17 +155,6 @@ function Cash() {
           </div>
         </section>
 
-        <aside className="space-y-3 rounded-2xl border border-border bg-card p-4 lg:self-start">
-          <h2 className="font-display text-lg font-extrabold">{c.backup}</h2>
-          <p className="text-sm text-muted-foreground">{c.lastBackup}: {pos.lastBackup ? fmtDateTime(pos.lastBackup, pos.lang) : c.never}</p>
-          <button onClick={exportAll} className={`${btn} bg-primary text-primary-foreground`}><Download />{c.exportAll}</button>
-          <button onClick={() => fileRef.current?.click()} className={`${btn} bg-foreground text-background`}><Upload />{c.restore}</button>
-          <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void restore(f); e.target.value = ""; }} />
-          <hr className="border-border" />
-          <button onClick={csvSales} className={`${btn} bg-muted`}>{c.csvSales}</button>
-          <button onClick={csvExp} className={`${btn} bg-muted`}>{c.csvExp}</button>
-          <button onClick={csvMenu} className={`${btn} bg-muted`}>{c.csvMenu}</button>
-        </aside>
       </div>
 
       {printed && (() => {
