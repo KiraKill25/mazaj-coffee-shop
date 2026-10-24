@@ -8,10 +8,10 @@ import { PinGate } from "@/components/PinGate";
 export const Route = createFileRoute("/cash")({
   head: () => ({
     meta: [
-      { title: "Cash Drawer & Backup — MAZAJ Coffee Shop" },
-      { name: "description", content: "Open and close the register each day, check the cash drawer and back up all data to your PC." },
-      { property: "og:title", content: "Cash Drawer & Backup — MAZAJ Coffee Shop" },
-      { property: "og:description", content: "Daily register opening, closing report and full data backup." },
+      { title: "Register — MAZAJ Coffee Shop" },
+      { name: "description", content: "Open and close the register each day and check the cash drawer." },
+      { property: "og:title", content: "Register — MAZAJ Coffee Shop" },
+      { property: "og:description", content: "Daily register opening and closing report." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
