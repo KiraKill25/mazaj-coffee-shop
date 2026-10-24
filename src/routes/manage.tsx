@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BarChart3, Package, Vault, Wallet, ArrowLeft, Lock } from "lucide-react";
+import { BarChart3, Package, Vault, Wallet, ArrowLeft, Lock, Settings } from "lucide-react";
+import { SETTINGS_LABEL } from "./settings";
 import { PinGate } from "@/components/PinGate";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -38,6 +39,7 @@ function Hub() {
     { to: "/reports" as const, icon: BarChart3, label: t.reports },
     { to: "/inventory" as const, icon: Package, label: t.inventory },
     { to: "/expenses" as const, icon: Wallet, label: h.exp },
+    { to: "/settings" as const, icon: Settings, label: SETTINGS_LABEL[pos.lang] },
   ];
   return (
     <PinGate>
