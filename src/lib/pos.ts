@@ -7,7 +7,7 @@ import soda from "@/assets/soda.jpg";
 export type Lang = "en" | "fr" | "ar";
 export type Category = { id: string; name: Record<Lang, string> };
 export type SaleLine = { id: string; name: Record<Lang, string>; price: number; qty: number };
-export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; method: "cash" | "card"; total: number; lines: SaleLine[]; cancelled?: { at: number; reason?: string | undefined } | undefined };
+export type Sale = { num: number; at: number; type: "dineIn" | "takeaway"; method: "cash" | "card"; total: number; lines: SaleLine[]; table?: string | undefined; cancelled?: { at: number; reason?: string | undefined } | undefined };
 
 export type Expense = { id: string; at: number; category: string; label: string; amount: number; note?: string | undefined; fromDrawer?: boolean | undefined };
 

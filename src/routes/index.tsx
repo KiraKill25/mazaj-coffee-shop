@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import logoAsset from "@/assets/mazaj-logo.jpg.asset.json";
-import { Minus, Plus, Trash2, Banknote, CreditCard, ShieldCheck, ReceiptText, Printer, X } from "lucide-react";
+import { Minus, Plus, Trash2, Banknote, CreditCard, ShieldCheck, ReceiptText, Printer, X, Smartphone } from "lucide-react";
 import { T, TX, CX, currentOrderNum, dayKey, fmtDateTime, openSession, fmtOrder, money, resolveImage, setPos, usePos, type Item, type Lang, type Sale } from "@/lib/pos";
 import { LangBar, useDir } from "@/components/LangBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Splash } from "@/components/Splash";
+import { newPin, useWaiterLink, type WaiterOrder } from "@/lib/waiterLink";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/")({
 
 type Line = { item: Item; qty: number };
 type OrderType = "dineIn" | "takeaway";
-type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number | undefined; at: number; lang: Lang };
+type Done = { num: number; type: OrderType; lines: Line[]; total: number; method: "cash" | "card"; received?: number | undefined; at: number; lang: Lang; table?: string | undefined };
 
 function Register() {
   useDir();
@@ -41,6 +42,20 @@ function Register() {
   const [pay, setPay] = useState<null | "cash" | "card">(null);
   const [received, setReceived] = useState("");
   const [printed, setPrinted] = useState<Done | null>(null);
+  const [fromWaiter, setFromWaiter] = useState<WaiterOrder | null>(null);
+  const [showWaiter, setShowWaiter] = useState(false);
+  const link = useWaiterLink(pos);
+  const W = {
+    en: { title: "Waiter orders", none: "No waiter orders waiting", pin: "Waiter PIN", addr: "Waiters open on their phone (same Wi-Fi):", hint: "Replace the address with this PC's Wi-Fi IP (Windows: ipconfig → IPv4).", cashOut: "Cash out", remove: "Remove", table: "Table", newPin: "New PIN", offline: "Link offline", online: "Link active", confirmRemove: "Remove this waiter order?" },
+    fr: { title: "Commandes serveurs", none: "Aucune commande serveur en attente", pin: "PIN serveurs", addr: "Les serveurs ouvrent sur leur téléphone (même Wi-Fi) :", hint: "Remplacez l'adresse par l'IP Wi-Fi de ce PC (Windows : ipconfig → IPv4).", cashOut: "Encaisser", remove: "Retirer", table: "Table", newPin: "Nouveau PIN", offline: "Liaison hors ligne", online: "Liaison active", confirmRemove: "Retirer cette commande serveur ?" },
+    ar: { title: "طلبات النُدُل", none: "لا توجد طلبات في الانتظار", pin: "رمز النُدُل", addr: "يفتح النُدُل على هواتفهم (نفس الواي فاي):", hint: "استبدل العنوان بعنوان IP لهذا الحاسوب (ويندوز: ipconfig ← IPv4).", cashOut: "تحصيل", remove: "حذف", table: "طاولة", newPin: "رمز جديد", offline: "الربط غير متصل", online: "الربط نشط", confirmRemove: "حذف طلب النادل هذا؟" },
+  }[pos.lang];
+  const loadWaiter = (o: WaiterOrder) => {
+    setCart(o.lines.map((l) => ({ qty: l.qty, item: pos.items.find((i) => i.id === l.id) ?? ({ id: l.id, name: l.name, price: l.price, category: "", image: "", outOfStock: false } as Item) })));
+    setType(o.type);
+    setFromWaiter(o);
+    setShowWaiter(false);
+  };
 
   const total = useMemo(() => cart.reduce((s, l) => s + l.item.price * l.qty, 0), [cart]);
   const items = pos.items.filter((i) => cat === "all" || i.category === cat);
@@ -62,8 +77,10 @@ function Register() {
 
   const confirm = () => {
     const at = Date.now();
-    const done: Done = { num: orderNum, type, lines: cart, total, method: pay!, received: pay === "cash" ? rec : undefined, at, lang: pos.lang };
-    setPos((s) => ({ ...s, nextOrder: currentOrderNum(s, at) + 1, orderDay: dayKey(at), sales: [...(s.sales ?? []), { num: currentOrderNum(s, at), at, type, method: pay!, total, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) }] }));
+    const table = fromWaiter?.table;
+    const done: Done = { num: orderNum, type, lines: cart, total, method: pay!, received: pay === "cash" ? rec : undefined, at, lang: pos.lang, table };
+    if (fromWaiter) { void link.done(fromWaiter.id); setFromWaiter(null); }
+    setPos((s) => ({ ...s, nextOrder: currentOrderNum(s, at) + 1, orderDay: dayKey(at), sales: [...(s.sales ?? []), { num: currentOrderNum(s, at), at, type, method: pay!, total, table, lines: cart.map((l) => ({ id: l.item.id, name: l.item.name, price: l.item.price, qty: l.qty })) }] }));
     setPrinted(done);
     setCart([]);
     setPay(null);
@@ -103,6 +120,7 @@ function Register() {
         <div className="flex items-center gap-2">
           <LangBar />
           <ThemeToggle />
+          <button onClick={() => setShowWaiter(true)} aria-label={W.title} title={W.title} className={`relative flex h-12 items-center gap-2 rounded-xl px-3 font-bold ${link.orders.length ? "animate-pulse bg-success text-success-foreground" : "bg-muted text-foreground"}`}><Smartphone /><span className="hidden lg:inline">{W.title}</span>{link.orders.length > 0 && <span className="absolute -end-1.5 -top-1.5 min-w-5 rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground">{link.orders.length}</span>}</button>
           <button onClick={() => setShowOrders(true)} aria-label={L.title} title={L.title} className="relative flex h-12 items-center gap-2 rounded-xl bg-accent px-3 font-bold text-accent-foreground"><ReceiptText /><span className="hidden sm:inline">{L.title}</span>{todays.length > 0 && <span className="absolute -end-1.5 -top-1.5 min-w-5 rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground">{todays.length}</span>}</button>
           <Link to="/manage" aria-label="Management" title="Management" className="flex h-12 items-center gap-2 rounded-xl bg-primary px-3 font-bold text-primary-foreground"><ShieldCheck /><span className="hidden sm:inline">{{ en: "Management", fr: "Gestion", ar: "الإدارة" }[pos.lang]}</span></Link>
         </div>
@@ -135,7 +153,7 @@ function Register() {
 
         <aside className="flex max-h-[45dvh] w-full flex-col border-t border-border bg-card md:max-h-none md:w-96 md:border-s md:border-t-0">
           <div className="flex items-center justify-between gap-2 p-4">
-            <div className="font-display text-lg font-extrabold">{t.order} {fmtOrder(orderNum)}</div>
+            <div className="font-display text-lg font-extrabold">{t.order} {fmtOrder(orderNum)}{fromWaiter?.table && <span className="ms-2 rounded-md bg-success px-2 py-0.5 text-sm text-success-foreground">{W.table} {fromWaiter.table}</span>}</div>
             <div className="flex rounded-xl bg-muted p-1">
               {(["dineIn", "takeaway"] as const).map((o) => (
                 <button key={o} onClick={() => setType(o)} className={`h-10 rounded-lg px-3 text-sm font-bold ${type === o ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>{t[o]}</button>
@@ -159,7 +177,7 @@ function Register() {
           <div className="space-y-3 border-t border-border p-4">
             <div className="flex items-center justify-between font-display text-2xl font-black"><span>{t.total}</span><span>{money(total, pos.currency)}</span></div>
             <div className="grid grid-cols-[auto_1fr_1fr] gap-2">
-              <button onClick={() => setCart([])} disabled={!cart.length} aria-label={t.clear} className="grid h-14 w-14 place-items-center rounded-xl bg-muted disabled:opacity-40"><Trash2 /></button>
+              <button onClick={() => { setCart([]); setFromWaiter(null); }} disabled={!cart.length} aria-label={t.clear} className="grid h-14 w-14 place-items-center rounded-xl bg-muted disabled:opacity-40"><Trash2 /></button>
               <button onClick={() => setPay("cash")} disabled={!cart.length} className="flex h-14 items-center justify-center gap-2 rounded-xl bg-success text-lg font-extrabold text-success-foreground disabled:opacity-40"><Banknote />{t.cash}</button>
               <button onClick={() => setPay("card")} disabled={!cart.length} className="flex h-14 items-center justify-center gap-2 rounded-xl bg-primary text-lg font-extrabold text-primary-foreground disabled:opacity-40"><CreditCard />{t.card}</button>
             </div>
@@ -241,6 +259,44 @@ function Register() {
         </div>
       )}
 
+      {showWaiter && (
+        <div className="fixed inset-0 z-40 flex justify-end bg-foreground/40" onClick={() => setShowWaiter(false)}>
+          <div className="flex h-full w-full max-w-md flex-col bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <h2 className="font-display text-xl font-extrabold">{W.title} ({link.orders.length})</h2>
+              <button onClick={() => setShowWaiter(false)} aria-label="Close" className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted"><X /></button>
+            </div>
+            <div className="space-y-2 border-b border-border bg-muted/50 p-4 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${link.online ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>{link.online ? W.online : W.offline}</span>
+                <span className="font-bold">{W.pin}: <span className="font-display text-2xl font-black tracking-widest">{pos.waiterPin}</span></span>
+                <button onClick={() => setPos((s) => ({ ...s, waiterPin: newPin() }))} className="h-9 rounded-lg bg-background px-2 text-xs font-bold">{W.newPin}</button>
+              </div>
+              <p>{W.addr} <b dir="ltr" className="select-all">{typeof window !== "undefined" ? window.location.origin : ""}/waiter</b></p>
+              <p className="text-muted-foreground">{W.hint}</p>
+            </div>
+            <div className="flex-1 space-y-2 overflow-y-auto p-4">
+              {link.orders.length === 0 && <p className="py-10 text-center text-muted-foreground">{W.none}</p>}
+              {[...link.orders].reverse().map((o) => (
+                <div key={o.id} className="rounded-xl bg-muted p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-lg font-extrabold">{o.table ? `${W.table} ${o.table}` : t.takeaway}</span>
+                    <span className="text-sm text-muted-foreground">{fmtDateTime(o.at, pos.lang)}</span>
+                    <span className="ms-auto font-bold">{money(o.total, pos.currency)}</span>
+                  </div>
+                  <ul className="mt-1 text-sm">{o.lines.map((l) => <li key={l.id}>{l.qty} × {l.name[pos.lang]}</li>)}</ul>
+                  {o.note && <p className="mt-1 text-sm italic">“{o.note}”</p>}
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => loadWaiter(o)} className="h-11 flex-1 rounded-lg bg-success px-3 font-bold text-success-foreground">{W.cashOut}</button>
+                    <button onClick={() => { if (window.confirm(W.confirmRemove)) void link.done(o.id); }} className="h-11 rounded-lg bg-destructive/10 px-3 font-bold text-destructive">{W.remove}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {printed && <PrintArea done={printed} currency={pos.currency} />}
     </div>
   );
@@ -255,7 +311,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
         <h2>MAZAJ COFFEE SHOP</h2>
         <p className="c">{fmtDateTime(done.at, done.lang)}</p>
         <p className="big c">{t.order} {fmtOrder(done.num)}</p>
-        <p className="c">{t[done.type]}</p>
+        <p className="c">{t[done.type]}{done.table ? ` · Table ${done.table}` : ""}</p>
         <hr />
         {done.lines.map((l) => (
           <div className="row" key={l.item.id}><span>{l.qty} × {l.item.name[done.lang]}</span><span>{money(l.item.price * l.qty, currency)}</span></div>
@@ -270,7 +326,7 @@ function PrintArea({ done, currency }: { done: Done; currency: string }) {
       <div className="receipt kitchen" dir="ltr">
         <h2>CUISINE</h2>
         <p className="big c">{fr.order} {fmtOrder(done.num)}</p>
-        <p className="big c">{fr[done.type].toUpperCase()}</p>
+        <p className="big c">{fr[done.type].toUpperCase()}{done.table ? ` · TABLE ${done.table}` : ""}</p>
         <p className="c">{fmtDateTime(done.at, "fr")}</p>
         <hr />
         {done.lines.map((l) => <p className="big" key={l.item.id}>{l.qty} × {l.item.name.fr}</p>)}
