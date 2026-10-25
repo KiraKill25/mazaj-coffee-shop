@@ -35,6 +35,8 @@ export type PosState = {
   pin: string;
   currency: string;
   lang: Lang;
+  waiterPin: string; // 4-digit PIN waiters type to send orders to this register
+  linkKey: string; // secret id of this register on the local Wi-Fi relay
 };
 
 const SEED_IMAGES: Record<string, string> = { burger, fries, wrap, soda };
@@ -73,6 +75,8 @@ const seed = (): PosState => ({
   pin: "1234",
   currency: "€",
   lang: "fr",
+  waiterPin: "",
+  linkKey: "",
 });
 
 const KEY = "pos-state-v1";
